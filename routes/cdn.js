@@ -17,10 +17,10 @@ connection.then(function(client) {
   console.log("CDN: connected to MongoDB!");
   const db = client.db('cranlike');
   const bucket = new mongodb.GridFSBucket(db, {bucketName: 'files'});
-  send_from_bucket = function(hash, file, res){
+  send_from_bucket = function(hash, file, res, ref){
     return bucket.find({_id: hash}, {limit:1}).next().then(function(x){
       if(!x)
-        throw `Failed to locate file in gridFS: ${hash}`;
+        throw `Failed to locate file in gridFS: ${hash} (Via ${ref})`;
       if(file !== x.filename)
         throw `Incorrect filename ${file} (should be: ${x.filename})`;
       let type = x.filename.endsWith('.zip') ? 'application/zip' : 'application/x-gzip';
@@ -45,9 +45,10 @@ function error_cb(status, next) {
 router.get("/cdn/:hash/:file", function(req, res, next) {
   let hash = req.params.hash || "";
   let file = req.params.file || "";
+  let ref = req.query.ref ? atob(req.query.ref) || "unknown";
   if(hash.length != 32) //assume md5 for now
     return next(createError(400, "Invalid hash length"));
-  send_from_bucket(hash, file, res).catch(error_cb(400, next));
+  send_from_bucket(hash, file, res, ref).catch(error_cb(400, next));
 });
 
 router.get("/", function(req, res, next) {
