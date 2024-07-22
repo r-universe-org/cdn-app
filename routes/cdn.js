@@ -45,7 +45,7 @@ function error_cb(status, next) {
 router.get("/cdn/:hash/:file", function(req, res, next) {
   let hash = req.params.hash || "";
   let file = req.params.file || "";
-  let ref = req.query.ref ? atob(req.query.ref) || "unknown";
+  let ref = req.query.ref ? atob(req.query.ref) : "unknown";
   if(hash.length != 32) //assume md5 for now
     return next(createError(400, "Invalid hash length"));
   send_from_bucket(hash, file, res, ref).catch(error_cb(400, next));
