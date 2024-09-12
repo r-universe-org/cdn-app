@@ -18,7 +18,7 @@ function tar_index_files(input){
   let extract = tar.extract({allowUnknownFormat: true});
   return new Promise(function(resolve, reject) {
     function process_entry(header, stream, next_entry) {
-      if(header.size > 0){
+      if(header.size > 0 && header.name.match(/\/.*/)){
         files.push({
           filename: header.name,
           start: extract._buffer.shifted,
@@ -39,7 +39,15 @@ function tar_index_files(input){
     var extract = tar.extract({allowUnknownFormat: true})
       .on('entry', process_entry)
       .on('finish', finish_stream)
-      .on('error', reject);
+      .on('error', function(err){
+        if (err.message.includes('Unexpected end') && files.length > 0){
+          finish_stream(); //workaround tar-stream error for webr 0.4.2 trailing junk
+        } else {
+          reject(err);
+        }
+      });
+
+
     input.pipe(gunzip()).pipe(extract);
   });
 }
