@@ -70,6 +70,9 @@ stream_file = function(x){
 
 send_from_bucket = function(hash, file, res){
   return bucket.find({_id: hash}, {limit:1}).next().then(function(pkg){
+    if(!pkg){
+      return res.status(410).type("text/plain").send(`File ${hash} not available (anymore)`);
+    }
     let name = pkg.filename;
     if(file === `${name}.index` && name.endsWith('gz')){
       return tar_index_files(stream_file(pkg)).then(function(index){
