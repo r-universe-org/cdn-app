@@ -1,18 +1,11 @@
-import mongodb from 'mongodb';
 import express from 'express';
 import gunzip from 'gunzip-maybe';
 import tar from 'tar-stream';
 import createError from 'http-errors';
+import bucket from '../src/bucket.js';
 
 const router = express.Router();
-const HOST = process.env.CRANLIKE_MONGODB_SERVER || '127.0.0.1';
-const PORT = process.env.CRANLIKE_MONGODB_PORT || 27017;
-const USER = process.env.CRANLIKE_MONGODB_USERNAME || 'root';
-const PASS = process.env.CRANLIKE_MONGODB_PASSWORD;
-const AUTH = PASS ? (USER + ':' + PASS + "@") : "";
-const URL = 'mongodb://' + AUTH + HOST + ':' + PORT;
-const connection = mongodb.MongoClient.connect(URL);
-let bucket;
+
 
 function tar_index_files(input){
   let files = [];
@@ -57,13 +50,6 @@ function stream_file(x){
   return bucket.openDownloadStream(x['_id']);
 }
 
-//connect to database
-console.log("CDN: connecting to mongo...");
-connection.then(function(client) {
-  console.log("CDN: connected to MongoDB!");
-  const db = client.db('cranlike');
-  bucket = new mongodb.GridFSBucket(db, {bucketName: 'files'});
-});
 
 function send_from_bucket(hash, file, res){
   return bucket.find({_id: hash}, {limit:1}).next().then(function(pkg){
