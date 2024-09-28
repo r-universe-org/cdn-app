@@ -1,9 +1,8 @@
-const express = require('express');
-const path = require('path');
-const logger = require('morgan');
-const cors = require('cors');
-const createError = require('http-errors');
-const cdnRouter = require('./routes/cdn');
+import express from 'express';
+import logger from 'morgan';
+import cors from 'cors';
+import createError from 'http-errors';
+import cdnRouter from './routes/cdn.js';
 const app = express();
 
 app.use(cors())
@@ -23,4 +22,4 @@ app.use(function(err, req, res, next) {
   res.type("text/plain").send(err.message || "CDN lookup error");
 });
 
-module.exports = app;
+export default app;
