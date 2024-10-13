@@ -58,6 +58,7 @@ function send_from_bucket(hash, file, res){
     }
     let name = pkg.filename;
     if(file === `${name}.index` && name.endsWith('gz')){
+      /* Can be removed when WebR v0.3.3 is EOL */
       return tar_index_files(stream_file(pkg)).then(function(index){
         index.files.forEach(function(entry){
           entry.filename = entry.filename.match(/\/.*/)[0]; //strip pkg root dir
@@ -66,23 +67,23 @@ function send_from_bucket(hash, file, res){
         res.send(index);
       });
     } else if(name.endsWith('gz') && file === name.replace(/(tar.gz|tgz)/, 'tar')){
+      /* Can be removed when WebR v0.3.3 is EOL */
       return stream_file(pkg).pipe(gunzip()).pipe(
         res.type('application/tar').set({
           'Cache-Control': 'public, max-age=31557600',
           'Last-Modified' : pkg.uploadDate.toUTCString()
         })
       );
-    } else if(file === name){
+    } else {
       let type = name.endsWith('.zip') ? 'application/zip' : 'application/x-gzip';
       return stream_file(pkg).pipe(
         res.type(type).set({
           'Content-Length': pkg.length,
           'Cache-Control': 'public, max-age=31557600',
-          'Last-Modified' : pkg.uploadDate.toUTCString()
+          'Last-Modified' : pkg.uploadDate.toUTCString(),
+          'Content-Disposition' : `attachment; filename="${name}"`
         })
       );
-    } else {
-      throw `Incorrect request ${file} (file is: ${name})`;
     }
   });
 }
@@ -94,10 +95,9 @@ function error_cb(status, next) {
   }
 }
 
-router.get("/cdn/:hash/:file", function(req, res, next) {
+router.get("/cdn/:hash/:file?", function(req, res, next) {
   let hash = req.params.hash || "";
   let file = req.params.file || "";
-  let ref = req.query.ref ? atob(req.query.ref) : "unknown";
   if(hash.length != 32) //assume md5 for now
     return next(createError(400, "Invalid hash length"));
   send_from_bucket(hash, file, res).catch(error_cb(400, next));
