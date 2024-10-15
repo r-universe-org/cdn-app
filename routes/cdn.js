@@ -77,11 +77,10 @@ function send_from_bucket(hash, file, res){
     } else {
       let type = name.endsWith('.zip') ? 'application/zip' : 'application/x-gzip';
       return stream_file(pkg).pipe(
-        res.type(type).set({
+        res.type(type).attachment(name).set({
           'Content-Length': pkg.length,
           'Cache-Control': 'public, max-age=31557600',
-          'Last-Modified' : pkg.uploadDate.toUTCString(),
-          'Content-Disposition' : `attachment; filename="${name}"`
+          'Last-Modified' : pkg.uploadDate.toUTCString()
         })
       );
     }
