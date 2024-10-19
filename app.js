@@ -16,10 +16,11 @@ app.use(function(req, res, next) {
   next(createError(404));
 });
 
-// error handler
+// general error handler.
+// For example if the router does throw "error" then err below is "error"
 app.use(function(err, req, res, next) {
   res.status(err.status || 500);
-  res.type("text/plain").send(err.message || "CDN lookup error");
+  res.type("text/plain").send(err.message || err || "CDN lookup error");
 });
 
 export default app;

@@ -72,7 +72,7 @@ function send_from_bucket(hash, operation, res){
 
     if(operation == 'index'){
       if(!name.endsWith('gz'))
-        throw `Unable to index ${name} (only tar.gz files are supported)`;
+        throw createError(500, `Unable to index ${name} (only tar.gz files are supported)`);
       return tar_index_files(stream_file(pkg)).then(function(index){
         index.files.forEach(function(entry){
           entry.filename = entry.filename.match(/\/.*/)[0]; //strip pkg root dir
@@ -84,7 +84,7 @@ function send_from_bucket(hash, operation, res){
 
     if(operation == 'decompress'){
       if(!name.endsWith('gz'))
-        throw `Unable to decompress ${name} (only tar.gz files are suppored)`;
+        throw createError(`Unable to decompress ${name} (only tar.gz files are suppored)`);
       var tarname = name.replace(/(tar.gz|tgz)/, 'tar');
       return stream_file(pkg).pipe(gunzip()).pipe(
         res.type('application/tar').attachment(tarname).set({
@@ -94,27 +94,27 @@ function send_from_bucket(hash, operation, res){
       );
     }
 
-    throw `Unsuppored operation ${operation}`;
+    throw createError(500, `Unsuppored operation ${operation}`);
   });
 }
 
-function error_cb(status, next) {
-  return function(err){
-    console.log("[CDN-APP] HTTP " + status + ": " + err)
-    next(createError(status, err));
-  }
-}
-
-router.get("/cdn/:hash/:file?", function(req, res, next) {
-  let hash = req.params.hash || "";
-  let file = req.params.file || "send";
-  if(hash.length != 32 && hash.length != 64) //assume md5 for now
-    return next(createError(400, "Invalid hash length"));
-  send_from_bucket(hash, file, res).catch(error_cb(400, next));
+/* Reduce noise from crawlers in log files */
+router.get("/cdn/robots.txt", function(req, res, next) {
+  res.type('text/plain').send(`User-agent: *\nDisallow: /\n`);
 });
 
-router.get("/", function(req, res, next) {
-  next(createError(400, "Invalid CDN req: " + req.url));
+router.get("/cdn/:hash{/:file}", function(req, res, next) {
+  let hash = req.params.hash || "";
+  let file = req.params.file || "send";
+  if(hash.length != 32 && hash.length != 64) //can be md5 or sha256
+    return next(createError(400, "Invalid hash length"));
+  return send_from_bucket(hash, file, res);
+});
+
+/* index all the files, we have nothing to hide */
+router.get("/cdn", function(req, res, next) {
+  var cursor = bucket.find({}, {sort: {uploadDate: -1}, project: {_id: 1, filename: 1}});
+  return cursor.stream({transform: x => `${x._id} ${x.uploadDate.toISOString()} ${x.filename}\n`}).pipe(res.type('text/plain'));
 });
 
 export default router;
