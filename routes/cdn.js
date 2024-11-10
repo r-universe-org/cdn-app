@@ -88,7 +88,7 @@ function send_from_bucket(hash, operation, res){
       var tarname = name.replace(/(tar.gz|tgz)/, 'tar');
       return stream_file(pkg).pipe(gunzip()).pipe(
         res.type('application/tar').attachment(tarname).set({
-          'Cache-Control': 'public, max-age=31557600, immutable',
+          'Cache-Control': 'public, max-age=31536000, immutable',
           'Last-Modified' : pkg.uploadDate.toUTCString()
         })
       );
